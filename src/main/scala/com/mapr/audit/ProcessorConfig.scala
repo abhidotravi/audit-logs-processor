@@ -8,4 +8,6 @@ case class ProcessorConfig(cluster: String,
                            valueDeserializer: String,
                            offsetReset: String,
                            pollTimeout: String,
-                           batchInterval: String)
+                           batchInterval: String,
+                           tsdbHost: String,
+                           tsdbPort: Int)

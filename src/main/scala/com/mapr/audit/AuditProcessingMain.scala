@@ -65,7 +65,9 @@ object AuditProcessingMain {
       conf.getString("audit-conf.valueDeserializer"),
       conf.getString("audit-conf.offsetReset"),
       conf.getString("audit-conf.pollTimeout"),
-      conf.getString("audit-conf.batchInterval")
+      conf.getString("audit-conf.batchInterval"),
+      conf.getString("audit-conf.tsdbHost"),
+      conf.getInt("audit-conf.tsdbPort")
     )
   }
 

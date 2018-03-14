@@ -6,7 +6,6 @@ import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.streaming.kafka010.{ConsumerStrategies, KafkaUtils, LocationStrategies}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.streaming.{Milliseconds, Seconds, StreamingContext}
-import org.json4s.jackson.JsonMethods.{parse, compact, render}
 
 class AuditConsumer extends Serializable {
   def execute(config: ProcessorConfig): Unit = {
@@ -32,13 +31,9 @@ class AuditConsumer extends Serializable {
       ssc, LocationStrategies.PreferConsistent, consumerStrategy
     )
 
-
-    def parseDStream(input: DStream[String]): DStream[String] = {
-      input.mapPartitions(partition => partition.map(row => parse(row)).map(json => compact(render(json))))
-    }
-
-    val parsed = parseDStream(msgDStream.map(record => record.value()))
-    parsed.print()
+    val parsed = msgDStream.map(record => record.value())
+    val writeCounts: DStream[Int] = new OpenTSDBPublisher(config.tsdbHost, config.tsdbPort).publish(parsed)
+    writeCounts.reduce(_ + _).print
 
     //Start the computation
     println("Start Consuming")
