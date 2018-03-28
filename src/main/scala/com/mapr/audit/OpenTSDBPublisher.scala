@@ -5,10 +5,11 @@ import java.io.PrintWriter
 import java.net.Socket
 
 import com.mapr.db.spark._
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.streaming.dstream.DStream
 
 class OpenTSDBPublisher(val host: String, val port: Int) extends Serializable {
-  def publish(stream: DStream[String]) = stream.mapPartitions(partition => {
+  def publish(stream: DStream[ConsumerRecord[String, String]]) = stream.mapPartitions(partition => {
     var count = 0
     //TSDB parameters
     val sock = new Socket(host, port)
@@ -16,12 +17,9 @@ class OpenTSDBPublisher(val host: String, val port: Int) extends Serializable {
     val helper = new FidToPathHelper()
 
     partition.foreach(rowData => {
-      val doc = MapRDBSpark.newDocument(rowData)
+      val doc = MapRDBSpark.newDocument(rowData.value())
 
       val timestamp = doc.getTimestamp("timestamp").getMillis
-      val operation = doc.getString("operation")
-      val status = doc.getInt("status")
-
       var uid: String = "none"
       try {
         uid = doc.getInt("uid").toString
@@ -29,15 +27,30 @@ class OpenTSDBPublisher(val host: String, val port: Int) extends Serializable {
         case _: Throwable => //do nothing
       }
 
+      /**
+        * Build OpenTSDB String -> "put metric timestamp value tag1=val1 tag2=val2... "
+        */
       val tsdStr = new StringBuilder()
         .append("put ")
         .append("audit.count.metric ")
         .append(timestamp).append(" ")
         .append(1).append(" ")
 
-      val docMap: Map[String, AnyRef] = doc.asMap()
+      //parse objectType
+      rowData.topic().split("_")(1) match {
+        case "fs" => tsdStr.append("object=").append("fs").append(" ")
+        case "db" => tsdStr.append("object=").append("db").append(" ")
+        case "cldb" => tsdStr.append("object=").append("cldb").append(" ")
+        case "auth" => tsdStr.append("object=").append("auth").append(" ")
+        case _ => //Do nothing
+      }
 
+
+      //Add rest as tags
+      val docMap: Map[String, AnyRef] = doc.asMap()
       for((key, value) <- docMap.filterKeys(!_.equals("timestamp")).filterKeys(!_.equals("uid"))) {
+
+        //Convert the fids in messages to paths
         if(key.toLowerCase.contains("fid")) {
           key match {
             case "tableFid" => tsdStr.append("tablePath=").append(helper.convertFidToPath(value.toString)).append(" ")

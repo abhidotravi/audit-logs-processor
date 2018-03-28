@@ -31,8 +31,8 @@ class AuditConsumer extends Serializable {
       ssc, LocationStrategies.PreferConsistent, consumerStrategy
     )
 
-    val parsed = msgDStream.map(record => record.value())
-    val writeCounts: DStream[Int] = new OpenTSDBPublisher(config.tsdbHost, config.tsdbPort).publish(parsed)
+    /*val parsed = msgDStream.map(record => record.value())*/
+    val writeCounts: DStream[Int] = new OpenTSDBPublisher(config.tsdbHost, config.tsdbPort).publish(msgDStream)
     writeCounts.reduce(_ + _).print
 
     //Start the computation
