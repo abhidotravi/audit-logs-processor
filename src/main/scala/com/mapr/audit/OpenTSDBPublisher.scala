@@ -10,8 +10,11 @@ import org.apache.spark.streaming.dstream.DStream
 class OpenTSDBPublisher(val host: String, val port: Int) extends Serializable {
   def publish(stream: DStream[String]) = stream.mapPartitions(partition => {
     var count = 0
+    //TSDB parameters
     val sock = new Socket(host, port)
     val writer = new PrintWriter(sock.getOutputStream, true)
+    val helper = new FidToPathHelper()
+
     partition.foreach(rowData => {
       val doc = MapRDBSpark.newDocument(rowData)
 
@@ -34,8 +37,18 @@ class OpenTSDBPublisher(val host: String, val port: Int) extends Serializable {
 
       val docMap: Map[String, AnyRef] = doc.asMap()
 
-      for((key, value) <- docMap.filterKeys(!_.equals("timestamp")).filterKeys(!_.equals("uid")))
+      for((key, value) <- docMap.filterKeys(!_.equals("timestamp")).filterKeys(!_.equals("uid"))) {
+        if(key.toLowerCase.contains("fid")) {
+          key match {
+            case "tableFid" => tsdStr.append("tablePath=").append(helper.convertFidToPath(value.toString)).append(" ")
+            case "srcFid" => tsdStr.append("srcPath=").append(helper.convertFidToPath(value.toString)).append(" ")
+            case "childFid" => tsdStr.append("childPath=").append(helper.convertFidToPath(value.toString)).append(" ")
+            case "parentFid" => tsdStr.append("parentPath=").append(helper.convertFidToPath(value.toString)).append(" ")
+            case _ => //Do nothing
+          }
+        }
         tsdStr.append(key).append("=").append(value.toString).append(" ")
+      }
 
       if(!uid.equals("none"))
         tsdStr.append("uid=").append(uid)

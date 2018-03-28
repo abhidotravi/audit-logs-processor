@@ -9,11 +9,9 @@ import org.apache.spark.{SparkConf, SparkContext}
   * The entry point class for the Spark Streaming Application.
   *
   * Usage:
-  *
-  * spark/bin/spark-submit --class com.mapr.audit.AuditProcessingMain \
-  *                        --master local[2] \
-  *                        spark-streaming-example-project/target/scala-2.10/spark-streaming-example-project-0.1.0.jar \
-  *                        -cluster sirius -stream /var/mapr/auditstream/auditlogstream
+  * /opt/mapr/spark/spark-2.2.1/bin/spark-submit --master local[2] \
+  * --class com.mapr.audit.AuditProcessingMain target/auditlogs-processor-1.0-SNAPSHOT-jar-with-dependencies.jar \
+  * -cluster sirius -stream /var/mapr/auditstream/auditlogstream -group grp
   */
 object AuditProcessingMain {
   val appName  = "Audit-Stream-Processor"
