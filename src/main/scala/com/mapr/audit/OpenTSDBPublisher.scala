@@ -36,7 +36,8 @@ class OpenTSDBPublisher(val host: String, val port: Int) extends Serializable {
         .append(timestamp).append(" ")
         .append(1).append(" ")
 
-      //parse objectType
+      //parse topic to extract object type.
+      //topic -> clustername_object_hostname.
       rowData.topic().split("_")(1) match {
         case "fs" => tsdStr.append("object=").append("fs").append(" ")
         case "db" => tsdStr.append("object=").append("db").append(" ")
